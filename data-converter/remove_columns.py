@@ -66,12 +66,12 @@ def main() -> None:
     # 処理の対象となるディレクトリ
     parser.add_argument(
         "input_directory",
-        help="処理の対象となるCSVファイルが入っているディレクトリの名称 (`resources/` 以下を指定)"
+        help="処理の対象となるCSVファイルが入っているディレクトリの名称"
     )
     # 出力先となるディレクトリ
     parser.add_argument(
         "output_directory",
-        help="処理後のCSVファイルを保存するためのディレクトリの名称 (`output/` 以下を指定)"
+        help="処理後のCSVファイルを保存するためのディレクトリの名称"
     )
     # 削除の対象となるカラム
     parser.add_argument(
@@ -82,7 +82,7 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    input_directory = Path("resources/" + args.input_directory)
+    input_directory = Path(args.input_directory)
     # 処理の対象となるディレクトリの存在を確認する
     if not input_directory.is_dir():
         print(f"⚠️ 処理の対象となるディレクトリ {input_directory} が存在しません.")
@@ -99,7 +99,7 @@ def main() -> None:
         return
     # 全CSVファイルを処理する
     for csv_file in csv_files:
-        remove_columns_from_csv(csv_file, "output/" + args.output_directory, args.columns)
+        remove_columns_from_csv(csv_file, args.output_directory, args.columns)
 
 
 if __name__ == "__main__":
