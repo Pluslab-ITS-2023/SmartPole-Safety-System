@@ -6,16 +6,18 @@ from pathlib import Path
 import pandas as pd
 
 
-def remove_columns_from_csv(input_file_name: str, output_directly_name: str, columns: list[str]) -> None:
+def extract_rows_from_csv(input_file_name: str, output_directly_name: str, column_name: str, value: str) -> None:
     """
-    CSVファイルから指定されたカラムを削除して保存する関数
+    CSVファイルから指定されたカラムの要素が指定された値と等しい行を抽出して保存する関数
 
     :param input_file_name:
         入力されたファイル名
     :param output_directly_name:
         出力先のディレクトリ名
-    :param columns:
-        削除の対象となるカラム名
+    :param column_name:
+        判定の対象となるカラム名
+    :param value:
+        抽出の対象となる行に含まれる要素
     """
 
     input_file = Path(input_file_name)
@@ -32,14 +34,16 @@ def remove_columns_from_csv(input_file_name: str, output_directly_name: str, col
         print(f"⚠️ CSVファイル {input_file} の読み込みに失敗しました ({e}). ")
         return
 
-    # 存在するカラムを抽出する
-    existing_columns = [
-        column
-        for column in columns
-        if column in df.columns
-    ]
-    # カラムを削除する
-    df = df.drop(columns=existing_columns)
+    # 指定されたカラムの存在を確認する
+    if column_name not in df.columns:
+        print(f"⚠️ CSVファイル {input_file} にカラム {column_name} が存在しません. ")
+        return
+    # 指定されたカラムの要素が指定された値と等しい行を抽出する
+    df = df[df[column_name].astype(str) == value]
+    # 抽出対象の行が存在しない場合
+    if df.empty:
+        print(f"⚠️ CSVファイル {input_file} に `{column_name} = {value}` を満たす行がありません. ")
+        return
 
     # 出力先のディレクトリを作成する
     output_directory.mkdir(parents=True, exist_ok=True)
@@ -57,11 +61,11 @@ def remove_columns_from_csv(input_file_name: str, output_directly_name: str, col
 
 def main() -> None:
     """
-    コマンドライン引数にて指定されたディレクトリ内の全CSVファイルから指定されたカラムを削除する関数
+    コマンドライン引数にて指定されたディレクトリ内の全CSVファイルから指定されたカラムの要素と指定された値が等しい行を抽出する関数
     """
 
     parser = argparse.ArgumentParser(
-        description="指定されたディレクトリ内の全CSVファイルから指定されたカラムを削除します. "
+        description="指定されたディレクトリ内の全CSVファイルから指定されたカラムの要素と指定された値が等しい行を抽出します. "
     )
     # 処理の対象となるディレクトリ
     parser.add_argument(
@@ -73,11 +77,15 @@ def main() -> None:
         "output_directory",
         help="処理後のCSVファイルを保存するためのディレクトリの名称"
     )
-    # 削除の対象となるカラム
+    # 判定の対象となるカラム
     parser.add_argument(
-        "columns",
-        nargs="+",
-        help="削除の対象となるカラム名 (複数指定可能)"
+        "column",
+        help="判定の対象となるカラム名"
+    )
+    # 抽出の対象となる行に含まれる要素
+    parser.add_argument(
+        "value",
+        help="抽出の対象となる行に含まれる要素"
     )
 
     args = parser.parse_args()
@@ -99,7 +107,7 @@ def main() -> None:
         return
     # 全CSVファイルを処理する
     for csv_file in csv_files:
-        remove_columns_from_csv(csv_file, args.output_directory, args.columns)
+        extract_rows_from_csv(csv_file, args.output_directory, args.column, args.value)
 
 
 if __name__ == "__main__":
