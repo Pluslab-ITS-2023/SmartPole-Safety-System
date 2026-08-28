@@ -89,4 +89,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # `python csv_data_converter/rename_file.py resources/raw_data output/renamed`
     main()
