@@ -6,18 +6,14 @@ from pathlib import Path
 import pandas as pd
 
 
-def extract_rows_from_csv(input_file_name: str, output_directly_name: str, column_name: str, value: str) -> None:
+def change_datetime_to_time(input_file_name: str, output_directly_name: str, column_name: str = "time") -> None:
     """
-    CSVファイルから指定されたカラムの要素が指定された値と等しい行を抽出して保存する関数
+    カラム `time` の表示形式（`yyyy/m/d hh:mm:ss.000`）を `hh:mm:ss.000` 形式に変更する関数
 
     :param input_file_name:
         入力されたファイル名
     :param output_directly_name:
         出力先のディレクトリ名
-    :param column_name:
-        判定の対象となるカラム名
-    :param value:
-        抽出の対象となる行に含まれる要素
     """
 
     input_file = Path(input_file_name)
@@ -38,19 +34,19 @@ def extract_rows_from_csv(input_file_name: str, output_directly_name: str, colum
     if column_name not in df.columns:
         print(f"⚠️ CSVファイル {input_file} にカラム {column_name} が存在しません. ")
         return
-    # 指定されたカラムの要素が指定された値と等しい行を抽出する
-    df = df[df[column_name].astype(str) == value]
-    # 抽出対象の行が存在しない場合
-    if df.empty:
-        print(f"⚠️ CSVファイル {input_file} に `{column_name} = {value}` を満たす行がありません. ")
-        return
 
+    # `time` カラムの表示形式を変更する
+    try:
+        df[column_name] = pd.to_datetime(df[column_name], format="mixed")
+    except Exception as e:
+        print(f"⚠️ CSVファイル {input_file} のカラム {column_name} の変換に失敗しました ({e}). ")
+        return
+    df[column_name] = df[column_name].dt.strftime("%H:%M:%S.%f").str[:-3]
+    
     # 出力先のディレクトリを作成する
     output_directory.mkdir(parents=True, exist_ok=True)
-
-    # 元のファイル名を使用
+    # 出力するファイルの名前を設定する
     output_file = output_directory / input_file.name
-
     # 処理されたCSVファイルを保存する
     try:
         df.to_csv(output_file, index=False)
@@ -61,36 +57,27 @@ def extract_rows_from_csv(input_file_name: str, output_directly_name: str, colum
 
 def main() -> None:
     """
-    コマンドライン引数にて指定されたディレクトリ内の全CSVファイルから指定されたカラムの要素と指定された値が等しい行を抽出する関数
+    コマンドライン引数にて指定されたディレクトリ内の全CSVファイルにおけるカラム `time` の表示形式を変更する関数
     """
 
     parser = argparse.ArgumentParser(
-        description="指定されたディレクトリ内の全CSVファイルから指定されたカラムの要素と指定された値が等しい行を抽出します. "
+        description="指定されたディレクトリ内の全CSVファイルにおけるカラム `time` の表示形式を変更します. "
     )
-    # 処理の対象となるディレクトリ
     parser.add_argument(
-        "input_directory",
-        help="処理の対象となるCSVファイルが入っているディレクトリの名称"
+        "input_directory_name",
+        nargs="?",
+        default="resources/raw_data",
+        help="処理の対象となるCSVファイルが入っているディレクトリの名前 (デフォルト値: `resources/raw_data`)"
     )
-    # 出力先となるディレクトリ
     parser.add_argument(
-        "output_directory",
-        help="処理後のCSVファイルを保存するためのディレクトリの名称"
+        "output_directory_name",
+        nargs="?",
+        default="output/renamed",
+        help="処理後のCSVファイルを保存するためのディレクトリの名前 (デフォルト値: `output/changed_fmt`)"
     )
-    # 判定の対象となるカラム
-    parser.add_argument(
-        "column",
-        help="判定の対象となるカラム名"
-    )
-    # 抽出の対象となる行に含まれる要素
-    parser.add_argument(
-        "value",
-        help="抽出の対象となる行に含まれる要素"
-    )
-
     args = parser.parse_args()
 
-    input_directory = Path(args.input_directory)
+    input_directory = Path(args.input_directory_name)
     # 処理の対象となるディレクトリの存在を確認する
     if not input_directory.is_dir():
         print(f"⚠️ 処理の対象となるディレクトリ {input_directory} が存在しません. ")
@@ -106,9 +93,13 @@ def main() -> None:
         print(f"⚠️ 処理の対象となるディレクトリ {input_directory} 内にCSVファイルがありません. ")
         return
     # 全CSVファイルを処理する
-    for csv_file in csv_files:
-        extract_rows_from_csv(csv_file, args.output_directory, args.column, args.value)
+    total = len(csv_files)
+    digit = len(str(total))
+    for current, csv_file in enumerate(csv_files, start=1):
+        print(f"[{current:0{digit}d}/{total}] ", end="")
+        change_datetime_to_time(str(csv_file), args.output_directory_name)
 
 
 if __name__ == "__main__":
+    # `python csv_data_converter/change_time_format.py resources/raw_data output/changed_fmt`
     main()
