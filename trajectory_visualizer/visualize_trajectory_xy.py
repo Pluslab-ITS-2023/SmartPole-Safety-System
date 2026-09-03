@@ -58,8 +58,8 @@ def plot_trajectories(
     required_columns = [
         "vehicleid",
         "time",
-        "latitude",
-        "longitude"
+        "x",
+        "y"
     ]
 
     # 必要なカラムが存在するか確認
@@ -81,12 +81,12 @@ def plot_trajectories(
         return
 
     # 緯度・経度を数値として扱う
-    df["latitude"] = pd.to_numeric(
-        df["latitude"],
+    df["x"] = pd.to_numeric(
+        df["x"],
         errors="coerce"
     )
-    df["longitude"] = pd.to_numeric(
-        df["longitude"],
+    df["y"] = pd.to_numeric(
+        df["y"],
         errors="coerce"
     )
 
@@ -144,7 +144,7 @@ def plot_trajectories(
         # NaNの緯度・経度を除外
         # -------------------------------------------------
         vehicle_data = vehicle_data.dropna(
-            subset=["latitude", "longitude"]
+            subset=["x", "y"]
         )
 
         # 緯度または経度がすべてNaNの場合
@@ -154,8 +154,8 @@ def plot_trajectories(
         color = cmap(index % cmap.N)
 
         plt.plot(
-            vehicle_data["longitude"],
-            vehicle_data["latitude"],
+            vehicle_data["y"],
+            vehicle_data["x"],
             color=color,
             linewidth=1.5,
             marker="o",
@@ -163,8 +163,8 @@ def plot_trajectories(
             label=str(vehicle_id)
         )
 
-    plt.xlabel("Longitude")
-    plt.ylabel("Latitude")
+    plt.xlabel("Y")
+    plt.ylabel("X")
     plt.title("Vehicle Trajectories")
 
     plt.grid(True)

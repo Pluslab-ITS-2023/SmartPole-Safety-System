@@ -58,9 +58,13 @@ python csv_data_converter/change_invalid_value.py output/changed_fmt output/chan
 python csv_data_converter/resample.py output/changed_nan_lat_lon_s_h output/resampled_0.1
 ```
 
-1. 地理座標系からローカル座標系へ変換する
+7. 地理座標系からローカル座標系へ変換する
+
+- 小規模交差点の相対緯度: 35.042733
+- 小規模交差点の相対経度: 137.146396
 
 ```
+python csv_data_converter/change_coordinate.py output/resampled_0.1 output/converted_coord 35.042733 137.146396
 ```
 
 8. 移動ベクトルを算出する
