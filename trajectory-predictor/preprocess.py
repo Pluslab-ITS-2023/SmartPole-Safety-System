@@ -239,7 +239,7 @@ def resample_vehicle(df):
 # 緯度経度 → メートル座標
 # =========================================================
 
-def latitude_longitude_to_xy(df):
+def latitude_longitude_to_xy(df, origin=None):
     """
     緯度・経度を局所的なメートル座標に変換する。
 
@@ -252,8 +252,11 @@ def latitude_longitude_to_xy(df):
 
     df = df.copy()
 
-    lat0 = df["latitude"].iloc[0]
-    lon0 = df["longitude"].iloc[0]
+    if origin is None:
+        lat0 = df["latitude"].iloc[0]
+        lon0 = df["longitude"].iloc[0]
+    else:
+        lat0, lon0 = origin
 
     x = (
         (df["longitude"] - lon0)
@@ -276,7 +279,7 @@ def latitude_longitude_to_xy(df):
 # 車両データ全体の前処理
 # =========================================================
 
-def preprocess_vehicle(vehicle_df):
+def preprocess_vehicle(vehicle_df, origin=None):
     """
     1台の車両データをTransformer用データへ変換する。
     """
@@ -306,7 +309,8 @@ def preprocess_vehicle(vehicle_df):
 
     # 緯度経度 → x,y
     vehicle_df = latitude_longitude_to_xy(
-        vehicle_df
+        vehicle_df,
+        origin=origin,
     )
 
     # 必要なデータが残っているか確認
@@ -364,4 +368,34 @@ def load_and_preprocess_csv(csv_path):
         )
 
     return vehicle_trajectories
+
+
+def load_and_preprocess_scene_csv(csv_path):
+    """1日分の車両軌跡を共通のメートル座標系で前処理する。"""
+
+    df = replace_invalid_values(load_csv(csv_path))
+    valid_coordinates = df[["latitude", "longitude"]].dropna()
+
+    if valid_coordinates.empty:
+        return []
+
+    origin = (
+        valid_coordinates["latitude"].iloc[0],
+        valid_coordinates["longitude"].iloc[0],
+    )
+    trajectories = []
+
+    for vehicle_id, vehicle_df in df.groupby("vehicleid"):
+        processed = preprocess_vehicle(
+            vehicle_df,
+            origin=origin,
+        )
+
+        if processed is None:
+            continue
+
+        processed["vehicleid"] = vehicle_id
+        trajectories.append(processed)
+
+    return trajectories
 
