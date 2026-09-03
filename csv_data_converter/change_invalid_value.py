@@ -6,16 +6,16 @@ from pathlib import Path
 import pandas as pd
 
 
-def remove_columns(input_file_name: str, output_directly_name: str, column_names: list[str]) -> None:
+def change_invalidity_to_nan(input_file_name: str, output_directly_name: str, invalid_values: list[tuple[str, float]]) -> None:
     """
-    CSVファイルから指定されたカラムを削除して保存する関数
+    CSVファイルから指定されたカラムの要素が不定値である場合に `NaN` に置換する関数
 
     :param input_file_name:
         入力されたファイル名
     :param output_directly_name:
         出力先のディレクトリ名
-    :param column_names:
-        削除の対象となるカラム名
+    :param invalid_values:
+        置換の対象となるカラム名と不定値の組
     """
 
     input_file = Path(input_file_name)
@@ -32,14 +32,13 @@ def remove_columns(input_file_name: str, output_directly_name: str, column_names
         print(f"⚠️ CSVファイル {input_file} の読み込みに失敗しました ({e}). ")
         return
 
-    # 存在するカラムを抽出する
-    existing_columns = [
-        column
-        for column in column_names
-        if column in df.columns
-    ]
-    # カラムを削除する
-    df = df.drop(columns=existing_columns)
+    # 指定された不定値を `NaN` に置換する
+    for column_name, invalid_value in invalid_values:
+        # 指定されたカラムの存在を確認する
+        if column_name not in df.columns:
+            print(f"⚠️ CSVファイル {input_file} にカラム {column_name} が存在しません. ")
+            continue
+        df.loc[df[column_name] == invalid_value, column_name] = float("nan")
 
     # 出力先のディレクトリを作成する
     output_directory.mkdir(parents=True, exist_ok=True)
@@ -55,11 +54,11 @@ def remove_columns(input_file_name: str, output_directly_name: str, column_names
 
 def main() -> None:
     """
-    コマンドライン引数にて指定されたディレクトリ内の全CSVファイルから指定されたカラムを削除する関数
+    コマンドライン引数にて指定されたディレクトリ内の全CSVファイルから不定値を `NaN` に置換する関数
     """
 
     parser = argparse.ArgumentParser(
-        description="指定されたディレクトリ内の全CSVファイルから指定されたカラムを削除します. "
+        description="指定されたディレクトリ内の全CSVファイルから不定値を `NaN` に置換します. "
     )
     parser.add_argument(
         "input_directory_name",
@@ -71,14 +70,26 @@ def main() -> None:
         "output_directory_name",
         nargs="?",
         default="output/removed",
-        help="処理後のCSVファイルを保存するためのディレクトリの名前 (デフォルト値: `output/removed`)"
+        help="処理後のCSVファイルを保存するためのディレクトリの名前 (デフォルト値: `output/changed_nan`)"
     )
     parser.add_argument(
-        "column_names",
+        "invalid_values",
         nargs="+",
-        help="削除の対象となるカラム名 (複数指定可能)"
+        help="置換の対象となるカラム名と不定値の組 (例: `latitude=0 longitude=0`)"
     )
     args = parser.parse_args()
+
+    # 指定された不定値を取得する
+    invalid_values = []
+    for invalid_value in args.invalid_values:
+        try:
+            column_name, value = invalid_value.split("=", 1)
+            invalid_values.append(
+                (column_name, float(value))
+            )
+        except ValueError:
+            print(f"⚠️ 不定値の入力形式が正しくありません. ")
+            return
 
     input_directory = Path(args.input_directory_name)
     # 処理の対象となるディレクトリの存在を確認する
@@ -100,9 +111,9 @@ def main() -> None:
     digit = len(str(total))
     for current, csv_file in enumerate(csv_files, start=1):
         print(f"[{current:0{digit}d}/{total}] ", end="")
-        remove_columns(csv_file, args.output_directory_name, args.column_names)
+        change_invalidity_to_nan(csv_file, args.output_directory_name, invalid_values)
 
 
 if __name__ == "__main__":
-    # `python csv_data_converter/remove_columns.py resources/raw_data output/removed vehiclelist acceleration vehicleroleclassification`
+    # `python csv_data_converter/change_invalid_value.py resources/raw_data output/changed_nan latitude=0 longitude=0`
     main()

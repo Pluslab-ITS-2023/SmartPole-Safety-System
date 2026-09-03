@@ -6,16 +6,14 @@ from pathlib import Path
 import pandas as pd
 
 
-def remove_columns(input_file_name: str, output_directly_name: str, column_names: list[str]) -> None:
+def change_datetime_to_time(input_file_name: str, output_directly_name: str, column_name: str = "time") -> None:
     """
-    CSVファイルから指定されたカラムを削除して保存する関数
+    カラム `time` の表示形式（`yyyy/m/d hh:mm:ss.000`）を `hh:mm:ss.000` 形式に変更する関数
 
     :param input_file_name:
         入力されたファイル名
     :param output_directly_name:
         出力先のディレクトリ名
-    :param column_names:
-        削除の対象となるカラム名
     """
 
     input_file = Path(input_file_name)
@@ -32,15 +30,19 @@ def remove_columns(input_file_name: str, output_directly_name: str, column_names
         print(f"⚠️ CSVファイル {input_file} の読み込みに失敗しました ({e}). ")
         return
 
-    # 存在するカラムを抽出する
-    existing_columns = [
-        column
-        for column in column_names
-        if column in df.columns
-    ]
-    # カラムを削除する
-    df = df.drop(columns=existing_columns)
+    # 指定されたカラムの存在を確認する
+    if column_name not in df.columns:
+        print(f"⚠️ CSVファイル {input_file} にカラム {column_name} が存在しません. ")
+        return
 
+    # `time` カラムの表示形式を変更する
+    try:
+        df[column_name] = pd.to_datetime(df[column_name], format="mixed")
+    except Exception as e:
+        print(f"⚠️ CSVファイル {input_file} のカラム {column_name} の変換に失敗しました ({e}). ")
+        return
+    df[column_name] = df[column_name].dt.strftime("%H:%M:%S.%f").str[:-3]
+    
     # 出力先のディレクトリを作成する
     output_directory.mkdir(parents=True, exist_ok=True)
     # 出力するファイルの名前を設定する
@@ -55,11 +57,11 @@ def remove_columns(input_file_name: str, output_directly_name: str, column_names
 
 def main() -> None:
     """
-    コマンドライン引数にて指定されたディレクトリ内の全CSVファイルから指定されたカラムを削除する関数
+    コマンドライン引数にて指定されたディレクトリ内の全CSVファイルにおけるカラム `time` の表示形式を変更する関数
     """
 
     parser = argparse.ArgumentParser(
-        description="指定されたディレクトリ内の全CSVファイルから指定されたカラムを削除します. "
+        description="指定されたディレクトリ内の全CSVファイルにおけるカラム `time` の表示形式を変更します. "
     )
     parser.add_argument(
         "input_directory_name",
@@ -70,13 +72,8 @@ def main() -> None:
     parser.add_argument(
         "output_directory_name",
         nargs="?",
-        default="output/removed",
-        help="処理後のCSVファイルを保存するためのディレクトリの名前 (デフォルト値: `output/removed`)"
-    )
-    parser.add_argument(
-        "column_names",
-        nargs="+",
-        help="削除の対象となるカラム名 (複数指定可能)"
+        default="output/renamed",
+        help="処理後のCSVファイルを保存するためのディレクトリの名前 (デフォルト値: `output/changed_fmt`)"
     )
     args = parser.parse_args()
 
@@ -100,9 +97,9 @@ def main() -> None:
     digit = len(str(total))
     for current, csv_file in enumerate(csv_files, start=1):
         print(f"[{current:0{digit}d}/{total}] ", end="")
-        remove_columns(csv_file, args.output_directory_name, args.column_names)
+        change_datetime_to_time(str(csv_file), args.output_directory_name)
 
 
 if __name__ == "__main__":
-    # `python csv_data_converter/remove_columns.py resources/raw_data output/removed vehiclelist acceleration vehicleroleclassification`
+    # `python csv_data_converter/change_time_format.py resources/raw_data output/changed_fmt`
     main()

@@ -37,7 +37,6 @@ def rename_file(input_file_name: str, output_directly_name: str) -> None:
     # ファイル名を変更する
     output_file_name = f"{match.group(1)}{match.group(2)}.csv"
     output_file = output_directory / output_file_name
-
     # CSVファイルを保存する
     try:
         shutil.copy2(input_file, output_file)
@@ -84,7 +83,10 @@ def main() -> None:
         print(f"⚠️ 処理の対象となるディレクトリ {input_directory} 内にCSVファイルがありません. ")
         return
     # 全CSVファイルを処理する
-    for csv_file in csv_files:
+    total = len(csv_files)
+    digit = len(str(total))
+    for current, csv_file in enumerate(csv_files, start=1):
+        print(f"[{current:0{digit}d}/{total}] ", end="")
         rename_file(str(csv_file), args.output_directory_name)
 
 

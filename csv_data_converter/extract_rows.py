@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 
-def extract_rows_from_csv(input_file_name: str, output_directly_name: str, column_name: str, value: str) -> None:
+def extract_rows(input_file_name: str, output_directly_name: str, column_name: str, value: str) -> None:
     """
     CSVファイルから指定されたカラムの要素が指定された値と等しい行を抽出して保存する関数
 
@@ -47,10 +47,8 @@ def extract_rows_from_csv(input_file_name: str, output_directly_name: str, colum
 
     # 出力先のディレクトリを作成する
     output_directory.mkdir(parents=True, exist_ok=True)
-
-    # 元のファイル名を使用
+    # 出力するファイルの名前を設定する
     output_file = output_directory / input_file.name
-
     # 処理されたCSVファイルを保存する
     try:
         df.to_csv(output_file, index=False)
@@ -67,30 +65,29 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="指定されたディレクトリ内の全CSVファイルから指定されたカラムの要素と指定された値が等しい行を抽出します. "
     )
-    # 処理の対象となるディレクトリ
     parser.add_argument(
-        "input_directory",
-        help="処理の対象となるCSVファイルが入っているディレクトリの名称"
+        "input_directory_name",
+        nargs="?",
+        default="resources/raw_data",
+        help="処理の対象となるCSVファイルが入っているディレクトリの名前 (デフォルト値: `resources/raw_data`)"
     )
-    # 出力先となるディレクトリ
     parser.add_argument(
-        "output_directory",
-        help="処理後のCSVファイルを保存するためのディレクトリの名称"
+        "output_directory_name",
+        nargs="?",
+        default="output/extracted",
+        help="処理後のCSVファイルを保存するためのディレクトリの名前 (デフォルト値: `resources/extracted`)"
     )
-    # 判定の対象となるカラム
     parser.add_argument(
         "column",
         help="判定の対象となるカラム名"
     )
-    # 抽出の対象となる行に含まれる要素
     parser.add_argument(
         "value",
         help="抽出の対象となる行に含まれる要素"
     )
-
     args = parser.parse_args()
 
-    input_directory = Path(args.input_directory)
+    input_directory = Path(args.input_directory_name)
     # 処理の対象となるディレクトリの存在を確認する
     if not input_directory.is_dir():
         print(f"⚠️ 処理の対象となるディレクトリ {input_directory} が存在しません. ")
@@ -106,9 +103,13 @@ def main() -> None:
         print(f"⚠️ 処理の対象となるディレクトリ {input_directory} 内にCSVファイルがありません. ")
         return
     # 全CSVファイルを処理する
-    for csv_file in csv_files:
-        extract_rows_from_csv(csv_file, args.output_directory, args.column, args.value)
+    total = len(csv_files)
+    digit = len(str(total))
+    for current, csv_file in enumerate(csv_files, start=1):
+        print(f"[{current:0{digit}d}/{total}] ", end="")
+        extract_rows(csv_file, args.output_directory_name, args.column, args.value)
 
 
 if __name__ == "__main__":
+    # `python csv_data_converter/extract_rows.py resources/raw_data output/extracted sensorid 13633281`
     main()
