@@ -192,3 +192,5 @@ __marimo__/
 # resources / output data
 resources/
 output/
+
+nohup.out
