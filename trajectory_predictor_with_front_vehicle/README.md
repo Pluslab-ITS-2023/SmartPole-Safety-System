@@ -77,6 +77,14 @@ python3 train.py \
   --max-cross-distance 40 \
   --direction-similarity 0.5
 ```
+```bash
+nohup python3 -u train.py \
+  --data-dir ../output/trajectory_predictor/o1001/ns \
+  --output trajectory_transformer_front_vehicle.pt \
+  --max-cross-distance 40 \
+  --direction-similarity 0.5 \
+  > nohup.out 2>&1 &
+  ```
 
 CSVファイルを日付順に70%/15%/15%へ分割します。デフォルトでは過去20点から未来10点を予測します。
 
